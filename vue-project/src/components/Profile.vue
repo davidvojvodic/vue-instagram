@@ -50,7 +50,12 @@ const fetchData = async() => {
 
     await fetchIsFollowing()
 
-    await fetchFollowersCount()
+    const followerCount = await fetchFollowersCount()
+    const followingCount = await fetchFollowingCount()
+
+    userInfo.followers = followerCount
+    userInfo.following = followingCount
+    userInfo.posts = posts.value.length
 
     loading.value = false
 }
@@ -72,12 +77,21 @@ const fetchIsFollowing = async() => {
 }
 
 const fetchFollowersCount = async () => {
-    const response = await supabase
+    const {count} = await supabase
     .from("followers_following")
-    .select()
+    .select("*", {count: "exact"})
     .eq("following_id", user.value.id)
 
-    console.log(response)
+    return count
+}
+
+const fetchFollowingCount = async () => {
+    const {count} = await supabase
+    .from("followers_following")
+    .select("*", {count: "exact"})
+    .eq("follower_id", user.value.id)
+
+    return count
 }
 
 watch(loggedInUser, () => {
@@ -96,11 +110,7 @@ onMounted(() => {
     <Container>
         <div class="flex flex-col py-5" v-if="!loading">
             
-            <Userbar :key="$route.params.username" :user="user" :userInfo="{
-                posts: 4,
-                followers: 200,
-                following: 123
-            }" :addNewPost="addNewPost" :isFollowing="isFollowing" :updateIsFollowing="updateIsFollowing" />  
+            <Userbar :key="$route.params.username" :user="user" :userInfo="userInfo" :addNewPost="addNewPost" :isFollowing="isFollowing" :updateIsFollowing="updateIsFollowing" />  
             <ImageGallery :posts="posts" />
         </div>
         <div v-else class="flex items-center justify-center">
