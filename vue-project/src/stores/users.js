@@ -1,139 +1,176 @@
-import { ref } from 'vue'
-import { defineStore } from 'pinia'
-import {supabase} from "../supabase"
+import { ref } from 'vue'; // Import the ref function from Vue
+import { defineStore } from 'pinia'; // Import the defineStore function from Pinia
+import { supabase } from "../supabase"; // Import the supabase client instance
 
+// Define the user store using defineStore
 export const useUserStore = defineStore('users', () => {
-  const user = ref(null);
-  const errorMsg = ref("");
-  const loading = ref(false)
-  const loadingUser = ref(false)
+  // Define reactive variables
+  const user = ref(null); // User data
+  const errorMsg = ref(""); // Error message
+  const loading = ref(false); // Loading state
+  const loadingUser = ref(false); // User loading state
 
+  // Handle user login
   const handleLogin = async (credentials) => {
-    const {email, password} = credentials
+    // Extract email and password from credentials
+    const { email, password } = credentials;
 
-    if(!email.includes("@")) {
-      return errorMsg.value = "Email is not valid!"
+    // Validate email format
+    if (!email.includes("@")) {
+      return errorMsg.value = "Email is not valid!";
     }
 
-    if(!password.length) {
-      return errorMsg.value = "Password cannot be empty"
+    // Validate password presence
+    if (!password.length) {
+      return errorMsg.value = "Password cannot be empty";
     }
 
-    loading.value = true
+    loading.value = true;
 
-   const {error} = await supabase.auth.signInWithPassword({
+    // Sign in the user with email and password
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password
-    })
+    });
 
-    if(error) {
+    // Handle sign-in error
+    if (error) {
       loading.value = false;
-      return errorMsg.value = error.message
+      return errorMsg.value = error.message;
     }
 
-    const {data: existingUser} = await supabase
-    .from("users")
-    .select()
-    .eq("email", email)
-    .single()
+    // Retrieve the existing user data from the database
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select()
+      .eq("email", email)
+      .single();
 
+    // Update the user data in the store
     user.value = {
       email: existingUser.email,
       username: existingUser.username,
       id: existingUser.id
-    }
+    };
 
-    loading.value = false
-    errorMsg.value = ""
+    loading.value = false;
+    errorMsg.value = "";
+  };
 
-  }
-
+  // Handle user signup
   const handleSignup = async (credentials) => {
-    const {email, password, username} = credentials
+    // Extract email, password, and username from credentials
+    const { email, password, username } = credentials;
 
-    if(password.length < 6) {
-      return errorMsg.value = "Password is too short!"
-      
+    // Validate password length
+    if (password.length < 6) {
+      return errorMsg.value = "Password is too short!";
     }
 
-    if(username.length < 4) {
-      return errorMsg.value = "Username is too short!"
+    // Validate username length
+    if (username.length < 4) {
+      return errorMsg.value = "Username is too short!";
     }
 
-    if(!email.includes("@")) {
-      return errorMsg.value = "Email is not valid!"
+    // Validate email format
+    if (!email.includes("@")) {
+      return errorMsg.value = "Email is not valid!";
     }
 
-    loading.value=true;
+    loading.value = true;
 
-    //validate if user exists
-    const {data: userWithUsername} = await supabase
-    .from("users")
-    .select()
-    .eq("username", username)
-    .single()
+    // Check if user with the same username exists
+    const { data: userWithUsername } = await supabase
+      .from("users")
+      .select()
+      .eq("username", username)
+      .single();
 
-    if(userWithUsername) {
-      loading.value = false
-      return errorMsg.value = "User already exists"
+    // Handle username already exists
+    if (userWithUsername) {
+      loading.value = false;
+      return errorMsg.value = "User already exists";
     }
 
     errorMsg.value = "";
 
+    // Sign up the user with email and password
     await supabase.auth.signUp({
       email,
       password,
-    })
+    });
 
-    await supabase.from("users").insert({username, email})
+    // Insert the new user data into the database
+    await supabase.from("users").insert({ username, email });
 
-    const {data: newUser} = await supabase
+    // Retrieve the newly created user data from the database
+    const { data: newUser } = await supabase
       .from("users")
       .select()
       .eq("email", email)
-      .single()
+      .single();
 
+    // Update the user data in the store
     user.value = {
       id: newUser.id,
       email: newUser.email,
       username: newUser.username
-    }
+    };
 
-    loading.value = false
-  }
+    loading.value = false;
+  };
 
+  // Handle user logout
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    user.value = null
-  }
+    await supabase.auth.signOut();
+    user.value = null;
+  };
 
-  const getUser = async() => {
+  // Get user data
+  const getUser = async () => {
     loadingUser.value = true;
-    const {data} = await supabase.auth.getUser()
 
-    if(!data.user) {
+    // Retrieve the authenticated user data from supabase
+    const { data } = await supabase.auth.getUser();
+
+    // If no user data found, reset the user value and stop loading
+    if (!data.user) {
       loadingUser.value = false;
-      return user.value = null
+      return user.value = null;
     }
 
-    const {data: userWithEmail} = await supabase
-    .from("users")
-    .select()
-    .eq("email", data.user.email)
-    .single()
+    // Retrieve the user data with email from the database
+    const { data: userWithEmail } = await supabase
+      .from("users")
+      .select()
+      .eq("email", data.user.email)
+      .single();
 
+    // Update the user data in the store
     user.value = {
       username: userWithEmail.username,
       email: userWithEmail.email,
       id: userWithEmail.id
-    }
+    };
 
-    loadingUser.value = false
-  }
+    loadingUser.value = false;
+  };
 
+  // Clear error message
   const clearErrorMessage = () => {
-    errorMsg.value = ""
-  }
+    errorMsg.value = "";
+  };
 
-  return { user,errorMsg, loading, loadingUser, clearErrorMessage, handleLogin, handleSignup, handleLogout, getUser }
-})
+  // Return the store properties and methods
+  return {
+    user,
+    errorMsg,
+    loading,
+    loadingUser,
+    clearErrorMessage,
+    handleLogin,
+    handleSignup,
+    handleLogout,
+    getUser
+  };
+});

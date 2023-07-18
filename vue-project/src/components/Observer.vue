@@ -1,25 +1,31 @@
 <script setup>
-import {ref, onMounted} from "vue"
+// Import necessary dependencies
+import { ref, onMounted } from "vue"; // Import the ref and onMounted functions from Vue
 
+// Define reactive variables
+const observer = ref(null); // IntersectionObserver instance
+const root = ref(null); // Reference to the root element
 
-const observer = ref(null)
-const root = ref(null)
+// Define emits function to emit custom event
+const emits = defineEmits(["intersect"]);
 
-const emits = defineEmits(["intersect"])
-
+// Execute code when the component is mounted
 onMounted(() => {
-    observer.value = new IntersectionObserver(([entry]) => {
-        if(entry && entry.isIntersecting) {
-            emits("intersect")
-        }
-    })
+  // Create a new IntersectionObserver instance
+  observer.value = new IntersectionObserver(([entry]) => {
+    // If the observed element is intersecting
+    if (entry && entry.isIntersecting) {
+      // Emit the "intersect" event
+      emits("intersect");
+    }
+  });
 
-    observer.value.observe(root.value)
-})
+  // Observe the root element
+  observer.value.observe(root.value);
+});
 </script>
 
 <template>
-    <div class="h-10 w-10" ref="root">
-        
-    </div>
+  <!-- Root element with ref "root" -->
+  <div class="h-10 w-10" ref="root"></div>
 </template>
